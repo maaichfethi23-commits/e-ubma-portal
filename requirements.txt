@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+argon2-cffi
+python-dotenv
+groq
+cryptography
+PyJWT
