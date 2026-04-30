@@ -51,11 +51,11 @@ function App() {
       </main>
 
       {/* مرر رابط الـ API للشات بوت ليتوقف عن البحث في localhost */}
-      <FloatingChatbot 
-        apiUrl={`${API_BASE_URL}/chat`} 
-        onIntentDetected={handleIntentDetected} 
-        lang={lang} 
-        t={t} 
+      <FloatingChatbot
+        apiUrl={`${API_BASE_URL}/chat`}
+        onIntentDetected={handleIntentDetected}
+        lang={lang}
+        t={t}
       />
     </div>
   );

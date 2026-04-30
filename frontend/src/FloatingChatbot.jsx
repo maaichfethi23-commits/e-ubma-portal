@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 
-export default function FloatingChatbot({ onIntentDetected }) {
+export default function FloatingChatbot({ apiUrl = 'http://localhost:8000/api/chat', onIntentDetected, lang, t }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'bot', text: 'Bonjour! Je suis l\'assistant AI E-UBMA. / أهلاً بك! أنا المساعد الذكي، كيف يمكنني مساعدتك؟' }
+    { role: 'bot', text: 'Bonjour! Je suis l\'assistant AI E-UBMA. / أهلاً بك! أنا المساعد الذكي E-UBMA.' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,10 +32,11 @@ export default function FloatingChatbot({ onIntentDetected }) {
         name: "Ahmed T.",
         major: "L3 Informatique",
         grades: { "IA": 15.5, "Reseaux": 12.0, "Compilation": 14.0 },
-        current_page: window.location.pathname
+        current_page: window.location.pathname,
+        ui_language: lang
       };
 
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
