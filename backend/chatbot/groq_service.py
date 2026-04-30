@@ -12,10 +12,16 @@ client = AsyncGroq(
 )
 
 SYSTEM_PROMPT = """You are the E-UBMA Portal Student Assistant (The Digital Gateway for Badji Mokhtar University).
-You speak Arabic (MSA), Algerian Darja, and French.
 Your goal is to understand the student's request and respond appropriately.
 
-CRITICAL INSTRUCTION: You have the ability to control the UI and act on behalf of the user.
+CRITICAL INSTRUCTION FOR LANGUAGE:
+You MUST reply ONLY in the exact language the user used.
+- If the user writes in Arabic or Algerian Darja, you MUST reply ONLY in Arabic.
+- If the user writes in French, you MUST reply ONLY in French.
+Do NOT mix languages or provide translations unless explicitly asked.
+
+CRITICAL INSTRUCTION FOR ACTIONS:
+You have the ability to control the UI and act on behalf of the user.
 
 1. Generate Document: If the user asks for their grades, marks, or a transcript (Examples: "اريد علاماتي", "كشف النقاط", "relevé de notes"), you MUST append exactly ONE JSON block at the very end of your response to generate the document:
 {"intent": "request_document", "document_type": "transcript"}
@@ -25,6 +31,9 @@ CRITICAL INSTRUCTION: You have the ability to control the UI and act on behalf o
 
 3. Navigate UI: If the user explicitly asks to go to a specific page (Home, Vault, Documents, Badges), you MUST navigate them there:
 {"intent": "navigate", "destination": "vault"} (Use "home", "vault", or "badges" as destination)
+
+4. Form Filling (Agentic Magic): If the user asks you to fill out a form for them (e.g., "عمرلي استمارة الشهادة المدرسية", "Fill the certificate form"), extract their information from the prompt (Name, Major/Level) and output this JSON block:
+{"intent": "fill_form", "fields": {"name": "Extracted Name or empty", "major": "Extracted Major or empty", "form_type": "certificate"}}
 
 If none of these apply, just answer normally WITHOUT ANY JSON. Always be polite and helpful.
 """
@@ -49,19 +58,23 @@ async def process_chat_with_groq(message: str, user_id: str = "anonymous", user_
         
         response_text = chat_completion.choices[0].message.content
         
-        # Simple extraction logic for our custom intents
+        # Robust extraction logic for our custom intents
         intent_data = None
         if "{" in response_text and "}" in response_text:
-            try:
-                # Find the last JSON block
-                start_idx = response_text.rfind("{")
-                end_idx = response_text.rfind("}") + 1
-                json_str = response_text[start_idx:end_idx]
-                intent_data = json.loads(json_str)
-                # Remove the JSON from the user-facing text
-                response_text = response_text[:start_idx].strip()
-            except Exception:
-                pass
+            for i in range(len(response_text)):
+                if response_text[i] == '{':
+                    for j in range(len(response_text), i, -1):
+                        if response_text[j-1] == '}':
+                            json_str = response_text[i:j]
+                            try:
+                                intent_data = json.loads(json_str)
+                                # Remove the JSON from the user-facing text
+                                response_text = response_text[:i].strip()
+                                break
+                            except Exception:
+                                pass
+                    if intent_data:
+                        break
                 
         return {
             "reply": response_text,

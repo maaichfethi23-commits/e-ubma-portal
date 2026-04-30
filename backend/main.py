@@ -1,102 +1,199 @@
-from fastapi import FastAPI, HTTPException, Request
+import os
+from fastapi import FastAPI, HTTPException, Request, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+
 from backend.vault.notifications import NotificationManager
 from backend.vault.qr_service import generate_qr_verification_url
 from backend.badges.linkedin import generate_linkedin_add_url
 from backend.chatbot.groq_service import process_chat_with_groq
 
+# Database & Security
+from backend.database import SessionLocal, engine
+from backend import models
+from backend.vault import crypto, sharing
+
+# Create tables
+models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI(
     title="E-UBMA Portal API",
-    description="The Digital Gateway for Badji Mokhtar University - Backend Services",
-    version="1.0.0"
+    description="The Digital Gateway for Badji Mokhtar University - Secure Backend",
+    version="2.0.0"
 )
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict this to frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize services
+ph = PasswordHasher(time_cost=2, memory_cost=10240, parallelism=2)
 notification_manager = NotificationManager()
+UPLOAD_DIR = "backend/uploads"
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # --- Models ---
-class DocumentNotificationRequest(BaseModel):
-    student_id: str
-    student_email: str
-    document_name: str
-    document_hash: str
-
-class BadgeRequest(BaseModel):
-    badge_name: str
-    year: str
-    month: str
-    vault_link: str
-
 class ChatRequest(BaseModel):
     message: str
     user_id: str = "anonymous"
     context: dict | None = None
 
-# --- Endpoints ---
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to E-UBMA Portal API"}
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    first_name: str
+    last_name: str
+    major: str
 
-@app.post("/api/vault/notify")
-async def notify_student_document(req: DocumentNotificationRequest):
-    """Notify a student via official email that a PAdES document is ready."""
-    success = notification_manager.send_document_ready_email(
-        email=req.student_email,
-        student_id=req.student_id,
-        document_name=req.document_name
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+# --- Endpoints ---
+
+@app.post("/api/register")
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    hashed_pwd = ph.hash(user.password)
+    new_user = models.User(
+        email=user.email,
+        hashed_password=hashed_pwd,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        major=user.major
     )
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to send email notification")
-    
-    # Generate verification link
-    qr_url = generate_qr_verification_url(req.document_hash)
-    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"message": "User registered successfully", "user_id": new_user.id}
+
+@app.post("/api/login")
+def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    try:
+        ph.verify(db_user.hashed_password, user.password)
+    except VerifyMismatchError:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     return {
-        "status": "success",
-        "message": f"Notification sent to {req.student_email}",
-        "verify_url": qr_url
+        "message": "Login successful", 
+        "user_id": db_user.id,
+        "first_name": db_user.first_name,
+        "major": db_user.major
     }
 
-@app.post("/api/badges/linkedin-url")
-def get_linkedin_badge_url(req: BadgeRequest):
-    """Generate the LinkedIn Add-to-Profile URL for a validated skill."""
-    url = generate_linkedin_add_url(
-        badge_name=req.badge_name,
-        year=req.year,
-        month=req.month,
-        vault_link=req.vault_link
+@app.post("/api/documents/upload")
+async def upload_document(user_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Uploads a file, encrypts it with AES-256 in memory, generates Hash & QR, and saves it."""
+    file_data = await file.read()
+    
+    # Generate Hash for Authenticity
+    file_hash = crypto.generate_file_hash(file_data)
+    
+    # Encrypt file data
+    encrypted_data = crypto.encrypt_file(file_data)
+    
+    # Ensure dir exists
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file_path = os.path.join(UPLOAD_DIR, f"{file_hash}.enc")
+    
+    # Save encrypted data
+    with open(file_path, "wb") as f:
+        f.write(encrypted_data)
+        
+    new_doc = models.Document(
+        filename=file.filename,
+        file_path=file_path,
+        file_hash=file_hash,
+        owner_id=user_id
     )
-    return {"linkedin_add_url": url}
+    db.add(new_doc)
+    db.commit()
+    db.refresh(new_doc)
+    
+    qr_url = f"http://localhost:8000/api/documents/verify/{file_hash}"
+    
+    return {
+        "message": "File encrypted and uploaded securely",
+        "document_id": new_doc.id,
+        "qr_verification_url": qr_url
+    }
+
+@app.get("/api/documents")
+def get_user_documents(user_id: int, db: Session = Depends(get_db)):
+    docs = db.query(models.Document).filter(models.Document.owner_id == user_id).all()
+    return [{"id": d.id, "filename": d.filename, "hash": d.file_hash} for d in docs]
+
+@app.get("/api/documents/share/{doc_id}")
+def generate_share_link(doc_id: int, db: Session = Depends(get_db)):
+    """Generate a temporary JWT link to share the document."""
+    doc = db.query(models.Document).filter(models.Document.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    token = sharing.create_temporary_link(doc_id, expires_delta_hours=24)
+    # Return a frontend or backend URL that checks the token
+    return {"temporary_link": f"http://localhost:5173/shared?token={token}"}
+
+@app.get("/api/documents/verify/{file_hash}")
+def verify_document_authenticity(file_hash: str, db: Session = Depends(get_db)):
+    doc = db.query(models.Document).filter(models.Document.file_hash == file_hash).first()
+    if not doc:
+        return {"status": "Fake", "message": "This document does NOT exist in the university vault."}
+    
+    owner = db.query(models.User).filter(models.User.id == doc.owner_id).first()
+    return {
+        "status": "Authentic",
+        "message": "This is a verified E-UBMA document.",
+        "filename": doc.filename,
+        "owner": f"{owner.first_name} {owner.last_name}",
+        "major": owner.major
+    }
 
 @app.post("/api/chat")
 async def chat_with_assistant(req: ChatRequest):
     """Main Chatbot Endpoint using Groq API"""
     result = await process_chat_with_groq(req.message, req.user_id, req.context)
-    
-    # Check if there is an actionable intent
     intent_data = result.get("intent_data")
+    
     if intent_data:
         intent = intent_data.get("intent")
+        ui_language = req.context.get("ui_language", "fr") if req.context else "fr"
+            
         if intent == "request_document":
             doc_type = intent_data.get("document_type", "document")
-            # Here we would normally trigger Vault logic
-            result["reply"] += f"\n\n[SYSTÈME] : Démarrage du processus de génération pour : {doc_type}. / جاري بدء المعاملة لاستخراج: {doc_type}."
-        elif intent == "inquire_grades":
-            # Here we would fetch grades from R1-R14
-            result["reply"] += "\n\n[SYSTÈME] : Vos notes du semestre en cours (R1-R14) : Algorithmique (14/20), Base de Données (16/20). / علاماتك: خوارزميات (14)، قواعد بيانات (16)."
+            if ui_language == 'ar':
+                result["reply"] += f"\n\n[نظام] : جاري بدء المعاملة لاستخراج: {doc_type}."
+            else:
+                result["reply"] += f"\n\n[SYSTÈME] : Démarrage du processus de génération pour : {doc_type}."
+        elif intent == "fill_form":
+            if ui_language == 'ar':
+                result["reply"] += "\n\n[نظام] : تم استخراج البيانات، جاري نقلك لصفحة الاستمارات لملئها تلقائياً..."
+            else:
+                result["reply"] += "\n\n[SYSTÈME] : Données extraites, redirection vers le formulaire pour remplissage automatique..."
         elif intent == "validate_badge":
-            # Here we would trigger the badge validation workflow
-            result["reply"] += "\n\n[SYSTÈME] : Demande de validation de badge envoyée à l'administration. / تم إرسال طلب اعتماد الشارة."
+            if ui_language == 'ar':
+                result["reply"] += "\n\n[نظام] : تم إرسال طلب اعتماد الشارة بنجاح."
+            else:
+                result["reply"] += "\n\n[SYSTÈME] : Demande de validation de badge envoyée à l'administration."
             
     return {
         "reply": result["reply"],
