@@ -1,7 +1,10 @@
 import sys
 import os
 
-# Add the project root to the python path so 'backend' can be imported
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Tell the app it's running on Vercel
+os.environ["VERCEL"] = "1"
 
 from backend.main import app
