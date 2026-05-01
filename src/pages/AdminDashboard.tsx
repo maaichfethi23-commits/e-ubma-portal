@@ -21,24 +21,24 @@ export default function AdminDashboard() {
   const fetchPending = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("documents")
-      .select("*, users!inner(first_name, major)")
+      .from("requests")
+      .select("*, profiles!inner(first_name, major)")
       .eq("status", "pending");
     
-    if (error) toast.error("Error fetching documents");
+    if (error) toast.error("Error fetching requests");
     else setPendingDocs(data || []);
     setLoading(false);
   };
 
-  const handleValidate = async (docId: string) => {
+  const handleValidate = async (requestId: string) => {
     const { error } = await supabase
-      .from("documents")
+      .from("requests")
       .update({ status: "validated", validated_by: localStorage.getItem("user_id") })
-      .eq("id", docId);
+      .eq("id", requestId);
 
     if (error) toast.error("Validation failed");
     else {
-      toast.success("Document validated and moved to Professor queue");
+      toast.success("Request validated and moved to academic queue");
       fetchPending();
     }
   };
@@ -56,42 +56,24 @@ export default function AdminDashboard() {
       </nav>
 
       <main className="mx-auto max-w-7xl px-8 py-10">
-        <header className="mb-10">
-          <h2 className="text-3xl font-bold">Document Validation Queue</h2>
-          <p className="mt-2 text-slate-500">Review and verify student certificate requests according to faculty regulations.</p>
-        </header>
-
+        <h2 className="text-3xl font-bold mb-6">Validation Queue</h2>
         <div className="grid gap-6">
           {loading ? (
-            <div className="py-20 text-center text-slate-400">Loading pending requests...</div>
-          ) : pendingDocs.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white py-20 text-center">
-              <p className="text-slate-400 font-medium">No pending documents to review. Great job!</p>
-            </div>
-          ) : (
-            pendingDocs.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between rounded-2xl border bg-white p-6 shadow-sm transition hover:shadow-md">
-                <div className="flex items-center gap-5">
-                  <div className="grid h-12 w-12 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" /></svg>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">{doc.name}</h3>
-                    <p className="text-sm text-slate-500">Submitted by: <span className="font-semibold text-slate-700">{doc.users?.first_name}</span> ({doc.users?.major})</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold transition hover:bg-slate-50">View Content</button>
-                  <button 
-                    onClick={() => handleValidate(doc.id)}
-                    className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700"
-                  >
-                    Validate & Approve
-                  </button>
-                </div>
+            <div className="py-20 text-center">Loading...</div>
+          ) : pendingDocs.map((req) => (
+            <div key={req.id} className="flex items-center justify-between rounded-2xl border bg-white p-6 shadow-sm">
+              <div>
+                <h3 className="font-bold text-lg">{req.form_type}</h3>
+                <p className="text-sm text-slate-500">Student: {req.profiles?.first_name} ({req.profiles?.major})</p>
               </div>
-            ))
-          )}
+              <button 
+                onClick={() => handleValidate(req.id)}
+                className="rounded-xl bg-indigo-600 px-6 py-2 text-sm font-bold text-white transition hover:bg-indigo-700"
+              >
+                Approve Request
+              </button>
+            </div>
+          ))}
         </div>
       </main>
       <Chatbot />
