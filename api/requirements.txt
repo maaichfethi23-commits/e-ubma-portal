@@ -10,3 +10,4 @@ PyJWT
 python-multipart
 aiofiles
 psycopg2-binary
+pg8000

@@ -15,9 +15,11 @@ if not SQLALCHEMY_DATABASE_URL:
         DB_PATH = "./eubma.db"
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
-# For PostgreSQL (Supabase), we might need to handle the protocol if it starts with 'postgres://'
+# For PostgreSQL (Supabase), we use pg8000 for better Vercel compatibility
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
-    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
+elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
 
 # SQLite specific argument
 connect_args = {"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {}
