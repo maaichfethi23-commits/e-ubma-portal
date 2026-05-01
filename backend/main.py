@@ -129,7 +129,12 @@ async def upload_document(user_id: int, file: UploadFile = File(...), db: Sessio
     db.commit()
     db.refresh(new_doc)
     
-    qr_url = f"http://localhost:8000/api/documents/verify/{file_hash}"
+    # Get dynamic base URL from request or environment
+    base_url = os.environ.get("VERCEL_URL", "localhost:8000")
+    if not base_url.startswith("http"):
+        base_url = f"https://{base_url}"
+    
+    qr_url = f"{base_url}/api/documents/verify/{file_hash}"
     
     return {
         "message": "File encrypted and uploaded securely",
@@ -150,8 +155,12 @@ def generate_share_link(doc_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Document not found")
     
     token = sharing.create_temporary_link(doc_id, expires_delta_hours=24)
-    # Return a frontend or backend URL that checks the token
-    return {"temporary_link": f"http://localhost:5173/shared?token={token}"}
+    # Return a frontend URL (same as base URL but without /api)
+    base_url = os.environ.get("VERCEL_URL", "localhost:5173")
+    if not base_url.startswith("http"):
+        base_url = f"https://{base_url}"
+    
+    return {"temporary_link": f"{base_url}/shared?token={token}"}
 
 @app.get("/api/documents/verify/{file_hash}")
 def verify_document_authenticity(file_hash: str, db: Session = Depends(get_db)):
