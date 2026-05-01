@@ -9,9 +9,6 @@ import Login from './Login';
 import { translations } from './translations';
 import './index.css';
 
-// حدد رابط الباكاند المرفوع على Vercel هنا ليعمل عند الجميع
-const API_BASE_URL = "https://e-ubma-portal.vercel.app/api";
-
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState('home');
@@ -50,9 +47,7 @@ function App() {
         {renderContent()}
       </main>
 
-      {/* مرر رابط الـ API للشات بوت ليتوقف عن البحث في localhost */}
       <FloatingChatbot
-        apiUrl={`${API_BASE_URL}/chat`}
         onIntentDetected={handleIntentDetected}
         lang={lang}
         t={t}

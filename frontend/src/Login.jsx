@@ -16,23 +16,22 @@ export default function Login({ onLogin, lang, setLang, t }) {
     try {
       const endpoint = isRegister ? '/api/register' : '/api/login';
       const body = isRegister ? formData : { email: formData.email, password: formData.password };
-      
-      const res = await fetch(`http://localhost:8000${endpoint}`, {
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
-        throw new Error(data.detail || "Authentication Failed");
+        throw new Error(data.detail || 'Échec de l\'authentification');
       }
 
-      // Save user info globally or locally if needed
-      localStorage.setItem("user_id", data.user_id);
-      onLogin(); // Update parent state to authenticated
-      
+      localStorage.setItem('user_id', data.user_id);
+      onLogin();
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -42,7 +41,7 @@ export default function Login({ onLogin, lang, setLang, t }) {
 
   return (
     <div className={`login-container ${lang === 'ar' ? 'rtl' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <button 
+      <button
         onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
         style={{ position: 'absolute', top: 20, right: 20, background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer' }}
       >
@@ -52,22 +51,22 @@ export default function Login({ onLogin, lang, setLang, t }) {
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">E-UBMA</div>
-          <h2>{isRegister ? (lang === 'ar' ? "حساب جديد" : "Créer un compte") : t.login_welcome}</h2>
+          <h2>{isRegister ? (lang === 'ar' ? 'حساب جديد' : 'Créer un compte') : t.login_welcome}</h2>
           <p>{t.login_sub}</p>
         </div>
 
-        {error && <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+        {error && <div style={{ color: '#ff4d4d', marginBottom: '1rem', textAlign: 'center', padding: '0.5rem', background: 'rgba(255,77,77,0.1)', borderRadius: '8px' }}>{error}</div>}
 
         <form onSubmit={handleSubmit} className="login-form">
-          
+
           {isRegister && (
             <>
               <div className="form-group">
-                <label>{lang === 'ar' ? "الاسم" : "Prénom"}</label>
+                <label>{lang === 'ar' ? 'الاسم' : 'Prénom'}</label>
                 <input type="text" required value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
               </div>
               <div className="form-group">
-                <label>{lang === 'ar' ? "اللقب" : "Nom"}</label>
+                <label>{lang === 'ar' ? 'اللقب' : 'Nom'}</label>
                 <input type="text" required value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
               </div>
             </>
@@ -75,35 +74,35 @@ export default function Login({ onLogin, lang, setLang, t }) {
 
           <div className="form-group">
             <label>{t.login_email}</label>
-            <input 
-              type="text" 
-              placeholder="Ex: a.taleb@univ-annaba.dz" 
+            <input
+              type="text"
+              placeholder="Ex: a.taleb@univ-annaba.dz"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              required 
+              required
             />
           </div>
 
           <div className="form-group">
             <label>{t.login_pass}</label>
-            <input 
-              type="password" 
-              placeholder="••••••••" 
+            <input
+              type="password"
+              placeholder="••••••••"
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
-              required 
+              required
             />
           </div>
 
           <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? "..." : (isRegister ? (lang === 'ar' ? "تسجيل" : "S'inscrire") : t.login_btn)}
+            {loading ? '...' : (isRegister ? (lang === 'ar' ? 'تسجيل' : "S'inscrire") : t.login_btn)}
           </button>
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '1rem', cursor: 'pointer', color: 'var(--accent)' }} onClick={() => setIsRegister(!isRegister)}>
-          {isRegister 
-            ? (lang === 'ar' ? "لديك حساب؟ ادخل هنا" : "Déjà un compte ? Connectez-vous") 
-            : (lang === 'ar' ? "إنشاء حساب جديد" : "Créer un nouveau compte")}
+          {isRegister
+            ? (lang === 'ar' ? 'لديك حساب؟ ادخل هنا' : 'Déjà un compte ? Connectez-vous')
+            : (lang === 'ar' ? 'إنشاء حساب جديد' : 'Créer un nouveau compte')}
         </p>
       </div>
     </div>

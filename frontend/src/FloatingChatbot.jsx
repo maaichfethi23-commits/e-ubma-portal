@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 
-export default function FloatingChatbot({ apiUrl = 'http://localhost:8000/api/chat', onIntentDetected, lang, t }) {
+// Use relative URL so it works on both localhost (via Vite proxy) and Vercel
+const CHAT_API_URL = '/api/chat';
+
+export default function FloatingChatbot({ onIntentDetected, lang, t }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'bot', text: 'Bonjour! Je suis l\'assistant AI E-UBMA. / أهلاً بك! أنا المساعد الذكي E-UBMA.' }
@@ -10,7 +13,7 @@ export default function FloatingChatbot({ apiUrl = 'http://localhost:8000/api/ch
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -27,20 +30,19 @@ export default function FloatingChatbot({ apiUrl = 'http://localhost:8000/api/ch
     setIsLoading(true);
 
     try {
-      // Mock Context (In a real app, this would come from a Context/Redux store)
       const userContext = {
-        name: "Ahmed T.",
-        major: "L3 Informatique",
-        grades: { "IA": 15.5, "Reseaux": 12.0, "Compilation": 14.0 },
+        name: 'Ahmed T.',
+        major: 'L3 Informatique',
+        grades: { 'IA': 15.5, 'Reseaux': 12.0, 'Compilation': 14.0 },
         current_page: window.location.pathname,
         ui_language: lang
       };
 
-      const response = await fetch(apiUrl, {
+      const response = await fetch(CHAT_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: userMessage, 
+        body: JSON.stringify({
+          message: userMessage,
           user_id: 'student_ui',
           context: userContext
         })
@@ -48,7 +50,7 @@ export default function FloatingChatbot({ apiUrl = 'http://localhost:8000/api/ch
 
       const data = await response.json();
       setMessages(prev => [...prev, { role: 'bot', text: data.reply }]);
-      
+
       if (data.intent_detected && onIntentDetected) {
         onIntentDetected(data.intent_detected);
       }
@@ -61,7 +63,7 @@ export default function FloatingChatbot({ apiUrl = 'http://localhost:8000/api/ch
 
   return (
     <>
-      <button 
+      <button
         className="floating-widget-btn"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle Chat"
@@ -91,10 +93,10 @@ export default function FloatingChatbot({ apiUrl = 'http://localhost:8000/api/ch
             )}
             <div ref={messagesEndRef} />
           </div>
-          
+
           <form onSubmit={handleSend} className="chat-input-area" dir="auto">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ex: أريد كشف النقاط..."
