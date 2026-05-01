@@ -73,6 +73,10 @@ class UserLogin(BaseModel):
 
 # --- Endpoints ---
 
+@app.get("/api/test")
+def test_api():
+    return {"status": "alive", "message": "Backend is reachable!"}
+
 @app.post("/api/register")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()

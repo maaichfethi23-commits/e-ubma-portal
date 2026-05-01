@@ -9,4 +9,4 @@ cryptography
 PyJWT
 python-multipart
 aiofiles
-psycopg2-binary
+psycopg2-binary==2.9.9
