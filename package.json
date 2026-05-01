@@ -1,7 +1,7 @@
 {
-  "name": "e-ubma-portal",
-  "private": true,
+  "name": "e-ubma-portal-root",
+  "version": "1.0.0",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build"
+    "build": "npm install --prefix frontend && npm run build --prefix frontend"
   }
 }
