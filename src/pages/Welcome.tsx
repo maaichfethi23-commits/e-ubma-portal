@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Chatbot } from "@/components/Chatbot";
 import ubmaLogo from "@/assets/ubma-logo.png";
 
-
 const EN = "Welcome to the University Space of Badji Mokhtar Annaba";
 const AR = "مرحبا بك في فضاء جامعة باجي مختار عنابة";
 
