@@ -1,26 +1,19 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
-from backend.database import Base
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.sql import func
+from .database import Base
 
 class User(Base):
     __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    first_name = Column(String)
-    last_name = Column(String)
-    major = Column(String)
+    role = Column(String) # admin, professor, student
 
-    documents = relationship("Document", back_populates="owner")
-
-class Document(Base):
-    __tablename__ = "documents"
-
+class Request(Base):
+    __tablename__ = "requests"
     id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, index=True)
-    file_path = Column(String)
-    file_hash = Column(String, unique=True, index=True)
-    owner_id = Column(Integer, ForeignKey("users.id"))
-
-    owner = relationship("User", back_populates="documents")
+    user_id = Column(String)
+    form_type = Column(String)
+    status = Column(String, default="pending") # pending, validated, issued
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    validated_by = Column(String, nullable=True)
+    issued_by = Column(String, nullable=True)

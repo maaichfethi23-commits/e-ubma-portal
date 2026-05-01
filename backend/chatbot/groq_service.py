@@ -33,7 +33,7 @@ UI ACTIONS (JSON ONLY AT THE END):
 Keep your answer concise and do not show the JSON to the user.
 """
 
-async def process_chat_with_groq(message: str, user_id: str = "anonymous", user_context: dict = None):
+async def get_chat_response(message: str, user_context: dict = None):
     try:
         # Inject dynamic context into the system prompt if provided
         dynamic_prompt = SYSTEM_PROMPT
@@ -46,7 +46,7 @@ async def process_chat_with_groq(message: str, user_id: str = "anonymous", user_
                 {"role": "system", "content": dynamic_prompt},
                 {"role": "user", "content": message}
             ],
-            model="llama3-70b-8192", # Using 70B for better logic and language adherence
+            model="llama-3.3-70b-versatile",
             temperature=0.2,
             max_tokens=1024,
         )
@@ -63,7 +63,6 @@ async def process_chat_with_groq(message: str, user_id: str = "anonymous", user_
                             json_str = response_text[i:j]
                             try:
                                 intent_data = json.loads(json_str)
-                                # Remove the JSON from the user-facing text
                                 response_text = response_text[:i].strip()
                                 break
                             except Exception:
@@ -79,6 +78,6 @@ async def process_chat_with_groq(message: str, user_id: str = "anonymous", user_
     except Exception as e:
         print(f"Groq API Error: {e}")
         return {
-            "reply": "Désolé, une erreur technique est survenue avec le serveur d'intelligence artificielle. / عذراً، حدث خطأ تقني في خادم الذكاء الاصطناعي.",
+            "reply": "Désolé, une erreur technique est survenue. / عذراً، حدث خطأ تقني.",
             "intent_data": None
         }
