@@ -38,6 +38,14 @@ ph = PasswordHasher(time_cost=2, memory_cost=10240, parallelism=2)
 notification_manager = NotificationManager()
 UPLOAD_DIR = "backend/uploads"
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return {
+        "detail": str(exc),
+        "error_type": type(exc).__name__,
+        "hint": "Check DATABASE_URL and requirements.txt"
+    }
+
 # Dependency
 def get_db():
     db = SessionLocal()
