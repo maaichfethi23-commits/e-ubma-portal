@@ -16,9 +16,6 @@ from backend.database import SessionLocal, engine
 from backend import models
 from backend.vault import crypto, sharing
 
-# Create tables
-models.Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title="E-UBMA Portal API",
     description="The Digital Gateway for Badji Mokhtar University - Secure Backend",
