@@ -25,15 +25,15 @@ app = FastAPI(
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8080", "http://localhost:8081", "http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 ph = PasswordHasher(time_cost=2, memory_cost=10240, parallelism=2)
-notification_manager = NotificationManager()
-UPLOAD_DIR = "backend/uploads"
+35: notification_manager = NotificationManager()
+36: UPLOAD_DIR = "backend/uploads"
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -168,6 +168,29 @@ async def upload_document(user_id: int, file: UploadFile = File(...), db: Sessio
         "qr_verification_url": qr_url
     }
 
+@app.get("/api/documents/download/{doc_id}")
+def download_document(doc_id: int, user_id: int, db: Session = Depends(get_db)):
+    doc = db.query(models.Document).filter(models.Document.id == doc_id, models.Document.owner_id == user_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if not os.path.exists(doc.file_path):
+        raise HTTPException(status_code=404, detail="File missing on server")
+        
+    with open(doc.file_path, "rb") as f:
+        encrypted_data = f.read()
+        
+    try:
+        decrypted_data = crypto.decrypt_file(encrypted_data)
+        from fastapi.responses import Response
+        return Response(
+            content=decrypted_data,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={doc.filename}"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Decryption failed: {str(e)}")
+
 @app.get("/api/documents")
 def get_user_documents(user_id: int, db: Session = Depends(get_db)):
     docs = db.query(models.Document).filter(models.Document.owner_id == user_id).all()
@@ -187,6 +210,28 @@ def generate_share_link(doc_id: int, db: Session = Depends(get_db)):
         base_url = f"https://{base_url}"
     
     return {"temporary_link": f"{base_url}/shared?token={token}"}
+
+@app.post("/api/crypto/encrypt")
+async def encrypt_file_endpoint(file: UploadFile = File(...)):
+    """Stateless encryption for frontend to call before uploading to Supabase."""
+    file_data = await file.read()
+    try:
+        encrypted_data = crypto.encrypt_file(file_data)
+        from fastapi.responses import Response
+        return Response(content=encrypted_data, media_type="application/octet-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/crypto/decrypt")
+async def decrypt_file_endpoint(file: UploadFile = File(...)):
+    """Stateless decryption for frontend to call after downloading from Supabase."""
+    encrypted_data = await file.read()
+    try:
+        decrypted_data = crypto.decrypt_file(encrypted_data)
+        from fastapi.responses import Response
+        return Response(content=decrypted_data, media_type="application/octet-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/documents/verify/{file_hash}")
 def verify_document_authenticity(file_hash: str, db: Session = Depends(get_db)):
@@ -228,13 +273,9 @@ async def chat_with_assistant(req: ChatRequest):
             if ui_language == 'ar':
                 result["reply"] += "\n\n[نظام] : تم إرسال طلب اعتماد الشارة بنجاح."
             else:
-                result["reply"] += "\n\n[SYSTÈME] : Demande de validation de badge envoyée à l'الادارة."
+                result["reply"] += "\n\n[SYSTÈME] : Demande de validation de badge envoyée à l'administration."
             
     return {
         "reply": result["reply"],
         "intent_detected": intent_data
     }
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
