@@ -2,157 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* UBMA design system — warm crimson + gold on cream. All custom colors live as raw CSS vars (OKLCH) and are referenced via tailwind.config.ts as `var(--token)` */
-
-@import url("https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@500;700&display=swap");
-
 @layer base {
   :root {
-    --radius: 0.75rem;
-
-    /* UBMA brand palette */
-    --ink: oklch(0.30 0.14 25);
-    --ink-2: oklch(0.46 0.11 30);
-    --ink-3: oklch(0.58 0.06 35);
-    --surface: oklch(0.985 0.012 85);
-    --surface-2: oklch(0.96 0.022 85);
-    --surface-3: oklch(0.89 0.03 80);
-    --gold: oklch(0.78 0.14 80);
-
-    /* Semantic */
-    --success: oklch(0.62 0.17 148);
-    --success-foreground: oklch(1 0 0);
-    --success-light: oklch(0.95 0.05 148);
-    --danger: oklch(0.585 0.222 29);
-    --danger-foreground: oklch(1 0 0);
-    --danger-light: oklch(0.95 0.045 29);
-    --info: oklch(0.55 0.18 250);
-    --info-foreground: oklch(1 0 0);
-    --info-light: oklch(0.95 0.05 250);
-    --warning: oklch(0.68 0.16 80);
-    --warning-foreground: oklch(0.25 0.05 80);
-    --warning-light: oklch(0.96 0.06 90);
-
-    /* Shadcn semantic tokens — point at the brand palette */
-    --background: var(--surface);
-    --foreground: var(--ink);
-    --card: oklch(1 0 0);
-    --card-foreground: var(--ink);
-    --popover: oklch(1 0 0);
-    --popover-foreground: var(--ink);
-    --primary: var(--ink);
-    --primary-foreground: oklch(1 0 0);
-    --secondary: var(--surface-2);
-    --secondary-foreground: var(--ink);
-    --muted: var(--surface-2);
-    --muted-foreground: var(--ink-3);
-    --accent: var(--surface-2);
-    --accent-foreground: var(--ink);
-    --destructive: var(--danger);
-    --destructive-foreground: var(--danger-foreground);
-    --border: var(--surface-3);
-    --input: var(--surface-3);
-    --ring: var(--ink);
-
-    --sidebar-background: oklch(1 0 0);
-    --sidebar-foreground: var(--ink);
-    --sidebar-primary: var(--ink);
-    --sidebar-primary-foreground: oklch(1 0 0);
-    --sidebar-accent: var(--surface-2);
-    --sidebar-accent-foreground: var(--ink);
-    --sidebar-border: var(--surface-3);
-    --sidebar-ring: var(--ink);
+    --ink: #111111;
+    --ink-2: #444444;
+    --ink-3: #888888;
+    --gold: #C5A059;
+    --surface: #F8F8F8;
+    --surface-2: #F0F0F0;
+    --surface-3: #E0E0E0;
+    --success: #10B981;
+    --success-light: #ECFDF5;
+    --warning: #F59E0B;
+    --warning-light: #FFFBEB;
+    --info: #3B82F6;
+    --info-light: #EFF6FF;
+    --danger: #EF4444;
+    --danger-light: #FEF2F2;
   }
 }
 
-@layer base {
-  * { border-color: var(--border); }
-  html, body { font-family: 'DM Sans', sans-serif; }
-  body {
-    background: var(--background);
-    color: var(--foreground);
-    background-image:
-      radial-gradient(at 0% 0%, color-mix(in oklab, var(--ink) 6%, transparent) 0, transparent 45%),
-      radial-gradient(at 100% 0%, color-mix(in oklab, var(--ink) 4%, transparent) 0, transparent 40%);
-    background-attachment: fixed;
-  }
+body {
+  @apply bg-surface text-ink font-sans selection:bg-ink selection:text-white;
 }
 
-/* ANIMATIONS */
+.font-display {
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-@keyframes float {
-  0%, 100% { transform: translateY(0) }
-  50% { transform: translateY(-8px) }
-}
-@keyframes shimmer {
-  0% { background-position: -200% 0 }
-  100% { background-position: 200% 0 }
-}
-@keyframes pulseRing {
-  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--ink) 40%, transparent) }
-  70% { box-shadow: 0 0 0 14px color-mix(in oklab, var(--ink) 0%, transparent) }
-  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--ink) 0%, transparent) }
-}
-@keyframes blink {
-  0%, 80%, 100% { opacity: .25; transform: scale(0.8) }
-  40% { opacity: 1; transform: scale(1) }
-}
-@keyframes gradientShift {
-  0%, 100% { background-position: 0% 50% }
-  50% { background-position: 100% 50% }
-}
-@keyframes spinSlow { to { transform: rotate(360deg) } }
-@keyframes dotJump {
-  0%, 80%, 100% { opacity: .25; transform: translateY(0) }
-  40% { opacity: 1; transform: translateY(-2px) }
-}
-.dot-anim > span {
-  display: inline-block;
-  animation: dotJump 1.2s infinite ease-in-out both;
-}
-.dot-anim > span:nth-child(1) { animation-delay: 0s }
-.dot-anim > span:nth-child(2) { animation-delay: .15s }
-.dot-anim > span:nth-child(3) { animation-delay: .3s }
 
-.fade-up { animation: fadeUp .7s cubic-bezier(.2,.8,.2,1) both; }
-.fade-in { animation: fadeIn .8s ease both; }
-.float { animation: float 5s ease-in-out infinite; }
-.pulse-ring { animation: pulseRing 2s infinite; }
-.spin-slow { animation: spinSlow 24s linear infinite; }
-.delay-100 { animation-delay: .1s }
-.delay-200 { animation-delay: .2s }
-.delay-300 { animation-delay: .3s }
-.delay-400 { animation-delay: .4s }
-.delay-500 { animation-delay: .5s }
-.delay-600 { animation-delay: .6s }
-.delay-700 { animation-delay: .7s }
-
-.hover-lift { transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s, border-color .25s; }
-.hover-lift:hover { transform: translateY(-4px); box-shadow: 0 16px 40px -16px color-mix(in oklab, var(--ink) 25%, transparent); border-color: var(--ink); }
-
-.gradient-text { color: var(--ink); }
-
-.shimmer {
-  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--ink) 12%, transparent), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2.5s infinite;
+.fade-up {
+  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.font-display { font-family: 'Syne', sans-serif; }
-
-html { scroll-behavior: smooth; }
-section[id] { scroll-margin-top: 1rem; }
-
-@keyframes sectionFlash {
-  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--ink) 35%, transparent); }
-  60%  { box-shadow: 0 0 0 10px color-mix(in oklab, var(--ink) 0%, transparent); }
-  100% { box-shadow: 0 0 0 0 transparent; }
+.hover-lift {
+  @apply transition-transform duration-300 hover:-translate-y-1;
 }
-.section-flash {
-  border-radius: 16px;
-  animation: sectionFlash 0.9s ease-out;
+
+.pulse-ring {
+  box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.4);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(17, 17, 17, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(17, 17, 17, 0); }
 }
