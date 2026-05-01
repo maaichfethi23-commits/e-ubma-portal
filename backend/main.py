@@ -45,11 +45,17 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Dependency
 def get_db():
-    db = SessionLocal()
     try:
+        db = SessionLocal()
         yield db
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Database Connection Error: {str(e)}"
+        )
     finally:
-        db.close()
+        if 'db' in locals():
+            db.close()
 
 # --- Models ---
 class ChatRequest(BaseModel):
@@ -73,6 +79,17 @@ class UserLogin(BaseModel):
 @app.get("/api/test")
 def test_api():
     return {"status": "alive", "message": "Backend is reachable!"}
+
+@app.get("/api/db-check")
+def db_check():
+    try:
+        from sqlalchemy import text
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        return {"status": "success", "message": "Database is connected!"}
+    except Exception as e:
+        return {"status": "error", "message": str(e), "type": type(e).__name__}
 
 @app.post("/api/register")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -211,7 +228,7 @@ async def chat_with_assistant(req: ChatRequest):
             if ui_language == 'ar':
                 result["reply"] += "\n\n[نظام] : تم إرسال طلب اعتماد الشارة بنجاح."
             else:
-                result["reply"] += "\n\n[SYSTÈME] : Demande de validation de badge envoyée à l'administration."
+                result["reply"] += "\n\n[SYSTÈME] : Demande de validation de badge envoyée à l'الادارة."
             
     return {
         "reply": result["reply"],
